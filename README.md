@@ -8,6 +8,8 @@ A cinematic AI interface inspired by Iron Man's J.A.R.V.I.S. HUD. Built with pur
 
 This project recreates the feeling of a futuristic holographic command system. It features a cinematic boot sequence, an animated arc reactor centerpiece, floating HUD panels with live data, and interactive elements — all rendered in the browser with zero dependencies.
 
+As of v1.1 it is also a working **OpenClaw status display**: served by the bundled zero-dependency Node server, the panels show live host and gateway telemetry instead of movie props (see [OpenClaw Integration](#-openclaw-integration)). Opened as a plain static page, it falls back to the original cinematic fake data.
+
 ## 🛠 Technologies
 
 - **HTML5** — Semantic structure
@@ -22,8 +24,12 @@ stark-systems/
 ├── css/
 │   └── style.css       # All styles, organized by section
 ├── js/
-│   └── script.js       # Boot sequence, animations, interactivity
+│   └── script.js       # Boot sequence, animations, live telemetry
+├── server/
+│   └── index.js        # Zero-dep local server + /api/status (OpenClaw)
+├── deploy/             # macOS LaunchAgent example
 ├── assets/             # Optional sound files
+├── SKILL.md            # OpenClaw skill manifest
 └── README.md           # This file
 ```
 
@@ -33,13 +39,38 @@ stark-systems/
    ```bash
    git clone https://github.com/jarvis-openclaw-assistant/stark-systems.git
    ```
-2. Open `index.html` in any modern browser. No build step or server required.
-
-   Or use a local server:
+2. With live telemetry (recommended):
    ```bash
    cd stark-systems
-   npx serve .
+   node server/index.js
+   # open http://127.0.0.1:9977
    ```
+   Or open `index.html` directly in a browser for the original static demo — no server, cinematic fake data only.
+
+## 🦾 OpenClaw Integration
+
+Install as an [OpenClaw](https://github.com/openclaw/openclaw) workspace skill:
+
+```bash
+git clone https://github.com/jarvis-openclaw-assistant/stark-systems.git \
+  ~/.openclaw/workspace/skills/stark-systems
+node ~/.openclaw/workspace/skills/stark-systems/server/index.js
+```
+
+To keep it running at login, use the LaunchAgent example in `deploy/`.
+
+When served this way the HUD goes live:
+
+| Panel | Live source |
+|---|---|
+| **System Status** | OpenClaw gateway `/health` (Core Online/OFFLINE, Integrity), real host uptime |
+| **Energy Output** | CPU load (1-min average vs. cores) + memory usage |
+| **Host System** | Hostname, LAN address, OS version |
+| **System Messages** | Gateway link established / lost announcements |
+
+Environment variables: `PORT` (default `9977`), `GATEWAY_HEALTH_URL` (default `http://127.0.0.1:18789/health`).
+
+**Security:** the server binds `127.0.0.1` only, reads no tokens or secrets, and exposes no agent control surface — it is strictly a read-only display. Do not bind it to the LAN.
 
 ## 🌐 Live Demo
 
@@ -52,6 +83,7 @@ stark-systems/
 | **Boot Sequence** | Cinematic typing animation with progress bar |
 | **Arc Reactor** | Rotating ring (rAF-driven), pulsing core, radial glow |
 | **HUD Panels** | 4 floating panels with staggered slide-in animations |
+| **Live Telemetry** | Real gateway health, uptime, CPU/memory, host info via `/api/status` |
 | **Live Clock** | Real-time digital clock |
 | **System Messages** | Rotating status messages every 5 seconds |
 | **Engage AI** | Interactive button — reactor intensifies, panels brighten |

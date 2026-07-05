@@ -47,9 +47,9 @@
       <!-- Panel 1: System Status -->
       <article class="panel panel--status" style="transform: translateX(-40px);">
         <h2>System Status</h2>
-        <p>Core: <span class="value highlight">Online</span></p>
-        <p>Uptime: <span class="value">99.97%</span></p>
-        <p>Integrity: <span class="value highlight">Nominal</span></p>
+        <p>Core: <span class="value highlight" id="sys-core">Online</span></p>
+        <p>Uptime: <span class="value" id="sys-uptime">99.97%</span></p>
+        <p>Integrity: <span class="value highlight" id="sys-integrity">Nominal</span></p>
       </article>
 
       <!-- Panel 2: Threat Level -->
@@ -60,21 +60,22 @@
         <p>Active Alerts: <span class="value" id="threat-alerts">0</span></p>
       </article>
 
-      <!-- Panel 3: Energy Output -->
+      <!-- Panel 3: Energy Output (live CPU/memory when served by the OpenClaw server) -->
       <article class="panel panel--energy" style="transform: translateX(-40px);">
         <h2>Energy Output</h2>
-        <p>Arc Reactor: <span class="value highlight" id="energy-value">0%</span></p>
+        <p><span id="energy-label">Arc Reactor</span>: <span class="value highlight" id="energy-value">0%</span></p>
         <div class="energy-bar">
           <div class="energy-bar-fill" id="energy-fill"></div>
         </div>
+        <p id="mem-row" style="display:none;">Memory: <span class="value" id="mem-value">--%</span></p>
       </article>
 
-      <!-- Panel 4: Global Location -->
+      <!-- Panel 4: Host System (live host info when served by the OpenClaw server) -->
       <article class="panel panel--location" style="transform: translateX(40px);">
-        <h2>Global Location</h2>
-        <p>Region: <span class="value">North Atlantic</span></p>
-        <p>Coordinates: <span class="value highlight">40.7° N, 74.0° W</span></p>
-        <p>Altitude: <span class="value">Ground Level</span></p>
+        <h2 id="host-title">Global Location</h2>
+        <p><span id="host-row1-label">Region</span>: <span class="value" id="host-row1">North Atlantic</span></p>
+        <p><span id="host-row2-label">Coordinates</span>: <span class="value highlight" id="host-row2">40.7° N, 74.0° W</span></p>
+        <p><span id="host-row3-label">Altitude</span>: <span class="value" id="host-row3">Ground Level</span></p>
       </article>
     </div>
 

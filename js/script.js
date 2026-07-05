@@ -23,11 +23,22 @@
   const threatStatus = document.getElementById('threat-status');
   const threatPerimeter = document.getElementById('threat-perimeter');
   const threatAlerts = document.getElementById('threat-alerts');
+  const sysCore = document.getElementById('sys-core');
+  const sysUptime = document.getElementById('sys-uptime');
+  const sysIntegrity = document.getElementById('sys-integrity');
+  const energyLabel = document.getElementById('energy-label');
+  const memRow = document.getElementById('mem-row');
+  const memValue = document.getElementById('mem-value');
+  const hostTitle = document.getElementById('host-title');
+  const hostRows = [1, 2, 3].map(n => ({
+    label: document.getElementById('host-row' + n + '-label'),
+    value: document.getElementById('host-row' + n)
+  }));
 
   /* --- Boot Lines --- */
   const bootLines = [
     'Booting Stark Systems...',
-    'Loading neural interface...',
+    'Linking OpenClaw gateway...',
     'Calibrating arc reactor...',
     'System online.'
   ];
@@ -301,6 +312,7 @@
     startMessages();
     startEnergyAnimation();
     startReactorAnimation();
+    startStatusPolling();
     loadVoices();
   }
 
@@ -361,15 +373,106 @@
 
   /* ============================================
      ENERGY ANIMATION
+     Decorative shimmer — only while no live telemetry
+     is available (static hosting / server down).
      ============================================ */
   function startEnergyAnimation() {
     function update() {
+      if (liveMode) return;
       const val = Math.floor(Math.random() * 28) + 72;
       energyFill.style.width = val + '%';
       energyValue.textContent = val + '%';
     }
     update();
     setInterval(update, 2000);
+  }
+
+  /* ============================================
+     LIVE TELEMETRY (OpenClaw integration)
+     Polls /api/status from the local server and
+     replaces the decorative panel data with real
+     host + gateway readings. If the endpoint is
+     unavailable (e.g. opened as a static page),
+     the HUD keeps its cinematic fallback data.
+     ============================================ */
+  let liveMode = false;
+  let lastGatewayOk = null;
+
+  function formatUptime(sec) {
+    const d = Math.floor(sec / 86400);
+    const h = Math.floor((sec % 86400) / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    return (d > 0 ? d + 'd ' : '') + h + 'h ' + m + 'm';
+  }
+
+  function announce(text, color) {
+    sysMsg.textContent = '> ' + text;
+    sysMsg.style.color = color || '';
+    sysMsg.style.opacity = '1';
+  }
+
+  function applyStatus(s) {
+    if (!liveMode) {
+      liveMode = true;
+      // Switch panels 3 & 4 from movie props to instruments
+      energyLabel.textContent = 'CPU Load';
+      memRow.style.display = '';
+      hostTitle.textContent = 'Host System';
+      hostRows[0].label.textContent = 'Node';
+      hostRows[1].label.textContent = 'Address';
+      hostRows[2].label.textContent = 'Platform';
+    }
+
+    const gwOk = s.gateway && s.gateway.reachable;
+    sysCore.textContent = gwOk ? 'Online' : 'OFFLINE';
+    sysCore.style.color = gwOk ? '' : '#ff3e3e';
+    sysUptime.textContent = formatUptime(s.uptimeSec);
+    sysIntegrity.textContent = gwOk ? 'Nominal' : 'Degraded';
+    sysIntegrity.style.color = gwOk ? '' : '#ff6b6b';
+
+    const cpuPct = Math.min(100, Math.round((s.load1 / s.cores) * 100));
+    energyFill.style.width = cpuPct + '%';
+    energyValue.textContent = cpuPct + '%';
+    memValue.textContent = s.memUsedPct + '%';
+
+    hostRows[0].value.textContent = s.host;
+    hostRows[1].value.textContent = s.ip;
+    hostRows[2].value.textContent = s.os;
+
+    // Announce gateway state transitions over the rotating flavor text
+    if (lastGatewayOk !== gwOk) {
+      if (gwOk) {
+        announce('Gateway link established — ' + (s.openclaw || 'OpenClaw') + '.');
+      } else if (lastGatewayOk !== null) {
+        announce('⚠ Gateway link lost — attempting to re-establish.', '#ff3e3e');
+      }
+      lastGatewayOk = gwOk;
+    }
+  }
+
+  function startStatusPolling() {
+    async function poll() {
+      try {
+        const res = await fetch('/api/status', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        applyStatus(await res.json());
+      } catch (e) {
+        // Server itself unreachable: report if we were live before,
+        // otherwise stay in cinematic fallback mode.
+        if (liveMode) {
+          sysCore.textContent = 'OFFLINE';
+          sysCore.style.color = '#ff3e3e';
+          sysIntegrity.textContent = 'Degraded';
+          sysIntegrity.style.color = '#ff6b6b';
+          if (lastGatewayOk !== false) {
+            announce('⚠ Telemetry link lost.', '#ff3e3e');
+            lastGatewayOk = false;
+          }
+        }
+      }
+    }
+    poll();
+    setInterval(poll, 5000);
   }
 
   /* ============================================
